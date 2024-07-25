@@ -1,22 +1,18 @@
 import requests
 from bs4 import BeautifulSoup
 
-req = requests.get('https://webscraper.io/test-sites/e-commerce/allinone')
+req = requests.get('https://codesignservices.com/contact')
 
 soup = BeautifulSoup(req.content, "html.parser")
 
-products = soup.find_all('div', class_='thumbnail')
+name_field = soup.find('input', {'name': 'hibban'})
+email_field = soup.find('input', {'name': 'hibban@gmail.com'})
+message_field = soup.find('textarea', {'name': 'scrapper'})
 
-for product in products:
+name = name_field.get('value', 'No name field found') if name_field else 'No name field found'
+email = email_field.get('value', 'No email field found') if email_field else 'No email field found'
+message = message_field.get_text(strip=True) if message_field else 'No message field found'
 
-    name = product.find('a', class_='title').get_text(strip=True)
-    
-    price = product.find('h4', class_='price').get_text(strip=True)
-    
-    description = product.find('p', class_='description')
-    description = description.get_text(strip=True) if description else 'No description available'
-
-    print(f'Name: {name}')
-    print(f'Price: {price}')
-    print(f'Description: {description}')
-    print('---')
+print(f'Name: {name}')  
+print(f'Email: {email}')
+print(f'Message: {message}')
