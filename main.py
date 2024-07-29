@@ -1,13 +1,10 @@
-import requests
-from bs4 import BeautifulSoup
+import pandas as pd
+from ntscraper import Nitter
 
-req = requests.get('https://x.com/search?q=jobs&src=typed_query')
+scraper = Nitter()
 
-# Parse the HTML content
-soup = BeautifulSoup(req.content, "html.parser")
+tweets = scraper.get_tweets('Web3Career', mode = 'user', number = 5)
 
-spans = soup.find_all('span', class_='css-1jxf684')
-
-for span in spans:
-    text = span.get_text(strip=True)
-    print(text)
+for tweet in tweets ['tweets']:
+    print(tweet)
+    print('-------- Next Tweet --------')
