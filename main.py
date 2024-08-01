@@ -1,83 +1,59 @@
-import pandas as pd
-from ntscraper import Nitter
-from flask import Flask, request, abort, render_template_string
-import random
 import requests
-import re
-import time
-from fake_useragent import UserAgent
+from bs4 import BeautifulSoup
 
-app = Flask(__name__)
+class LinkedInJobsScraper:
+    def __init__(self):
+        self.api_url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=python&location=United%2BStates&geoId=103644278&trk=public_jobs_jobs-search-bar_search-submit&start='
 
-# ----------- Set of rules to filter malicious requests ----------- 
-rules = {
-    'sql_injection': re.compile(r'(union|select|insert|delete|update|drop|alter).*', re.IGNORECASE),
-    'xss_attack': re.compile(r'(<script>|<iframe>).*', re.IGNORECASE),
-    'path_traversal': re.compile(r'(\.\./|\.\.).*', re.IGNORECASE)
-}
+    def fetch_jobs(self, start_page=0):
+        url = self.api_url + str(start_page)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.text
+        else:
+            print(f"Failed to retrieve job listings: {response.status_code}")
+            return None
 
-# ----------- Middleware to check each request against WAF rules -----------
-@app.before_request
-def check_request_for_attacks():
-    for attack_type, pattern in rules.items():
-        if pattern.search(request.path) or pattern.search(request.query_string.decode()):
-            abort(403, description=f'Request blocked by WAF: Detected {attack_type}')
+    def parse_jobs(self, html_content):
+        soup = BeautifulSoup(html_content, 'html.parser')
+        jobs = soup.find_all('li')
 
-@app.route('/')
-def home():
-    return 'Welcome to the safe web application guarded by our WAF!'
+        job_list = []
+        for job in jobs:
+            job_item = {}
+            job_item['job_title'] = job.find('h3').get_text(strip=True) if job.find('h3') else 'not-found'
+            job_item['job_detail_url'] = job.find('a', {'class': 'base-card__full-link'})['href'].strip() if job.find('a', {'class': 'base-card__full-link'}) else 'not-found'
+            job_item['job_listed'] = job.find('time').get_text(strip=True) if job.find('time') else 'not-found'
+            job_item['company_name'] = job.find('h4').find('a').get_text(strip=True) if job.find('h4') and job.find('h4').find('a') else 'not-found'
+            job_item['company_link'] = job.find('h4').find('a')['href'].strip() if job.find('h4') and job.find('a') else 'not-found'
+            job_item['company_location'] = job.find('span', {'class': 'job-search-card__location'}).get_text(strip=True) if job.find('span', {'class': 'job-search-card__location'}) else 'not-found'
+            job_list.append(job_item)
+        
+        return job_list
 
-def get_random_proxy():
-    proxies = [
-        'http://proxy1:port',
-        'http://proxy2:port',
-        'http://proxy3:port'
-    ]
-    return random.choice(proxies)
+    def scrape_jobs(self, start_page=0):
+        html_content = self.fetch_jobs(start_page)
+        if html_content:
+            job_list = self.parse_jobs(html_content)
+            return job_list
+        else:
+            print("Failed to retrieve job listings")
+            return None
 
-def agent(username, mode, number):
-    scraper = Nitter()
-    ua = UserAgent()
-    tweets = scraper.get_tweets(username, mode=mode, number=number)
-    tweet_data = []
-
-    for tweet in tweets['tweets']:
-        random_ua = ua.random
-        proxy = get_random_proxy()
-        delay = random.uniform(1, 5)
-        scraper.session = requests.Session()
-        scraper.session.headers['User-Agent'] = random_ua
-        scraper.session.proxies = {"http": proxy, "https": proxy}
-        tweet_data.append({
-            'tweet': tweet,
-            'user_agent': random_ua,
-            'agent': 'Nitter Scraper'  # Use string 'Nitter Scraper' to avoid recursion issues
-        })
-        time.sleep(delay)
-
-    return tweet_data
-
-@app.route('/tweets')
-def scrape_tweets():
-    print("Scrape Tweets route hit")  # Debug print
-    tweet_data = agent('Web3Career', mode='user', number=5)
-    return render_template_string('''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Tweets</title>
-        </head>
-        <body>
-            {% for data in tweet_data %}
-                <p><strong>Tweet:</strong> {{ data.tweet }}</p>
-                <p><strong>User Agent:</strong> {{ data.user_agent }}</p>
-                <p><strong>Agent:</strong> {{ data.agent }}</p>
-                <p>-------- Next Tweet --------</p>
-            {% endfor %}
-        </body>
-        </html>
-    ''', tweet_data=tweet_data)
-
-# Start the web application on port 5000 with debug mode
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    scraper = LinkedInJobsScraper()
+    jobs = scraper.scrape_jobs(start_page=0)
+    if jobs is not None:
+        for job in jobs:
+            print(f"Job Title: {job['job_title']}")
+            print(f"Job Detail URL: {job['job_detail_url']}")
+            print(f"Job Listed: {job['job_listed']}")
+            print(f"Company Name: {job['company_name']}")
+            print(f"Company Link: {job['company_link']}")
+            print(f"Company Location: {job['company_location']}")
+            print('----------------------------')
+    else:
+        print("No jobs found or failed to retrieve jobs.")
