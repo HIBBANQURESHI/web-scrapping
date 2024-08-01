@@ -61,17 +61,13 @@ def start_scraping():
     else:
         text_area.insert(tk.END, "No jobs found or failed to retrieve jobs.\n")
 
-# Create the main window
 root = tk.Tk()
 root.title("LinkedIn Jobs Scraper")
 
-# Create a ScrolledText widget
 text_area = scrolledtext.ScrolledText(root, width=80, height=20, wrap=tk.WORD)
 text_area.pack(padx=10, pady=10)
 
-# Create a button to start scraping
 scrape_button = tk.Button(root, text="Scrape", command=start_scraping)
 scrape_button.pack(pady=10)
 
-# Start the Tkinter event loop
 root.mainloop()
