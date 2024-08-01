@@ -1,5 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
+import tkinter as tk
+from tkinter import scrolledtext
 
 class LinkedInJobsScraper:
     def __init__(self):
@@ -43,17 +45,33 @@ class LinkedInJobsScraper:
             print("Failed to retrieve job listings")
             return None
 
-if __name__ == '__main__':
+def start_scraping():
     scraper = LinkedInJobsScraper()
     jobs = scraper.scrape_jobs(start_page=0)
     if jobs is not None:
+        text_area.delete('1.0', tk.END)  # Clear the text area
         for job in jobs:
-            print(f"Job Title: {job['job_title']}")
-            print(f"Job Detail URL: {job['job_detail_url']}")
-            print(f"Job Listed: {job['job_listed']}")
-            print(f"Company Name: {job['company_name']}")
-            print(f"Company Link: {job['company_link']}")
-            print(f"Company Location: {job['company_location']}")
-            print('----------------------------')
+            text_area.insert(tk.END, f"Job Title: {job['job_title']}\n")
+            text_area.insert(tk.END, f"Job Detail URL: {job['job_detail_url']}\n")
+            text_area.insert(tk.END, f"Job Listed: {job['job_listed']}\n")
+            text_area.insert(tk.END, f"Company Name: {job['company_name']}\n")
+            text_area.insert(tk.END, f"Company Link: {job['company_link']}\n")
+            text_area.insert(tk.END, f"Company Location: {job['company_location']}\n")
+            text_area.insert(tk.END, '----------------------------\n')
     else:
-        print("No jobs found or failed to retrieve jobs.")
+        text_area.insert(tk.END, "No jobs found or failed to retrieve jobs.\n")
+
+# Create the main window
+root = tk.Tk()
+root.title("LinkedIn Jobs Scraper")
+
+# Create a ScrolledText widget
+text_area = scrolledtext.ScrolledText(root, width=80, height=20, wrap=tk.WORD)
+text_area.pack(padx=10, pady=10)
+
+# Create a button to start scraping
+scrape_button = tk.Button(root, text="Scrape", command=start_scraping)
+scrape_button.pack(pady=10)
+
+# Start the Tkinter event loop
+root.mainloop()
